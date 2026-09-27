@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#174c40">
+<meta name="description" content="《共圓 KYŌEN》— 四點成圓，先成者負。兩位玩家輪流落子，避開讓任意四點共圓。">
+<meta property="og:title" content="共圓 KYŌEN">
+<meta property="og:description" content="四點成圓，先成者負。每一步都要想得更遠一點。">
+<meta property="og:type" content="website">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>共圓 KYŌEN｜四點成圓，先成者負</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap');
+:root{--paper:#f4f1e9;--ink:#202b2a;--muted:#7e8983;--line:#d8ddd5;--green:#174c40;--coral:#db735a;--cream:#fbfaf6;--soft:#edf0e8}
+*{box-sizing:border-box}
+html{min-height:100%;background:var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans TC',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input{font:inherit}
+button{touch-action:manipulation}
+.shell{max-width:1180px;margin:auto;padding:24px 30px 20px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.12em}
+.mark{width:38px;height:38px;border:1.5px solid var(--green);border-radius:50%;display:grid;place-items:center}
+.mark span{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:-9px 9px 0 var(--green),8px -9px 0 var(--green)}
+.top-meta,.eyebrow,.count,.status-kicker,.footer{font:11px 'DM Mono',monospace;letter-spacing:.12em}
+.top-meta{color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:54px;align-items:center}
+.eyebrow{color:var(--coral);letter-spacing:.2em}
+.intro h1{font-size:clamp(52px,8vw,90px);letter-spacing:.14em;line-height:1;margin:14px 0 12px;font-weight:800}
+.intro p{color:#68746e;font-size:14px;margin:0 0 24px}
+.stage{background:var(--cream);border:1px solid #e5e3da;padding:18px;border-radius:8px;box-shadow:0 12px 34px #373b2c0b;max-width:650px}
+.stage-head,.stage-foot{display:flex;align-items:center;justify-content:space-between}
+.stage-head{margin-bottom:14px}
+.turn{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600}
+.turn-dot{height:9px;width:9px;background:var(--coral);border-radius:50%;box-shadow:0 0 0 4px #db735a20}
+.turn.p2 .turn-dot{background:var(--green);box-shadow:0 0 0 4px #174c4020}
+.count{color:var(--muted)}
+.board-wrap{width:100%;aspect-ratio:1;background:var(--soft);border-radius:5px;overflow:hidden;touch-action:none}
+.board{width:100%;height:100%;display:block;cursor:crosshair}
+.stage-foot{padding-top:14px;color:var(--muted);font-size:11px}
+.side{padding-top:14px}
+.side h2{font-size:12px;letter-spacing:.13em;margin:0 0 16px;color:var(--muted)}
+.status-card{padding:18px;background:var(--green);color:#f8f7ee;border-radius:7px;margin-bottom:18px;min-height:112px}
+.status-kicker{font-size:10px;color:#b4cbbd;margin-bottom:11px}
+.status-text{font-size:15px;font-weight:600;line-height:1.55}
+.status-text small{display:block;color:#c5d4c9;font-weight:400;font-size:11px;margin-top:5px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:26px}
+.btn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:5px;padding:11px 12px;background:transparent;color:var(--ink);cursor:pointer;transition:.18s;min-height:42px}
+.btn:hover:not(:disabled){border-color:var(--green);background:#e9eee7}
+.btn:focus-visible{outline:3px solid #174c4040;outline-offset:2px}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn.primary{grid-column:1/-1;background:var(--green);color:white;border-color:var(--green);padding:13px}
+.btn.primary:hover{background:#246352}
+.share{width:100%;margin-top:-15px;margin-bottom:26px}
+.size-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin:0 0 10px}
+.size-row output{font:12px 'DM Mono';color:var(--green)}
+input[type=range]{width:100%;accent-color:var(--green);margin:3px 0 26px}
+.rule{border-top:1px solid var(--line);padding-top:19px}
+.rule h2{margin-bottom:12px}
+.rule p{font-size:12px;line-height:1.9;color:#68746e;margin:0}
+.rule b{color:var(--ink)}
+.history{display:flex;gap:5px;margin-top:12px;flex-wrap:wrap;min-height:24px}
+.history span{font:10px 'DM Mono';color:var(--muted);background:#ebece5;padding:4px 6px;border-radius:3px}
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:34px;padding-top:14px;border-top:1px solid var(--line);color:#909992;font-size:10px}
+.footer a{color:var(--green);text-decoration:none}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#202b2a;color:#fff;padding:10px 16px;border-radius:5px;font-size:12px;opacity:0;transition:.2s;pointer-events:none;z-index:10;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.mobile-tip{display:none}
+@media(max-width:800px){
+ .shell{padding:18px 16px 16px}.topbar{margin-bottom:25px}.layout{grid-template-columns:1fr;gap:22px}
+ .intro h1{font-size:64px}.stage{max-width:none}.side{padding-top:0}
+ .mobile-tip{display:block;font-size:11px;color:var(--muted);margin-top:8px}
+ .footer{margin-top:25px}
+}
+@media(max-width:430px){
+ .top-meta{font-size:9px}.intro h1{font-size:50px}.intro p{font-size:13px}
+ .stage{padding:12px}.stage-head{margin-bottom:10px}.stage-foot{padding-top:10px}
+ .actions{gap:7px}.btn{padding:10px 8px}
+ .footer{font-size:9px}
+}
+@media(hover:none){.board{cursor:default}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="topbar">
+  <div class="brand"><div class="mark"><span></span></div><span>共圓</span></div>
+  <div class="top-meta">KYŌEN · CONCYCLIC GAME</div>
+</header>
+
+<div class="layout">
+<section>
+  <div class="intro">
+    <div class="eyebrow">KYŌEN · V1.0</div>
+    <h1>共圓</h1>
+    <p>四點成圓，先成者負。每一步都要想得更遠一點。</p>
+  </div>
+
+  <div class="stage">
+    <div class="stage-head">
+      <div class="turn" id="turn"><i class="turn-dot"></i><span id="turnLabel">玩家 1 的回合</span></div>
+      <div class="count"><span id="moveCount">0</span> MOVES</div>
+    </div>
+    <div class="board-wrap">
+      <canvas id="board" class="board" aria-label="共圓遊戲棋盤"></canvas>
+    </div>
+    <div class="stage-foot">
+      <span>點擊交叉點落子</span><span id="boardLabel">9 × 9 棋盤</span>
+    </div>
+    <div class="mobile-tip">手機：直接點擊棋盤交叉點落子</div>
+  </div>
+</section>
+
+<aside class="side">
+  <h2>對局控制</h2>
+  <div class="status-card">
+    <div class="status-kicker">GAME STATUS</div>
+    <div class="status-text" id="status">輪到玩家 1 落子<small>避開讓任意四點落在同一圓上的位置。</small></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="undo" disabled>↶　悔棋</button>
+    <button class="btn" id="redo" disabled>↷　重做</button>
+    <button class="btn primary" id="reset">重新開始　↗</button>
+  </div>
+  <button class="btn share" id="share">↗　分享《共圓》</button>
+
+  <div class="size-row"><label for="size">棋盤大小</label><output id="sizeOut">9 × 9</output></div>
+  <input type="range" id="size" min="5" max="15" value="9" aria-label="棋盤大小">
+
+  <div class="rule">
+    <h2>遊戲規則</h2>
+    <p>兩位玩家輪流在棋盤交點放置棋子。<br>
+    <b>如果你放下的棋子，與場上另外三顆棋子恰好四點共圓，你就輸了。</b><br>
+    棋盤下滿仍未出現共圓，則和局。</p>
+    <div class="history" id="history" aria-label="最近落子紀錄"></div>
+  </div>
+</aside>
+</div>
+
+<footer class="footer">
+  <span>THINK IN POINTS, NOT LINES.</span>
+  <a href="https://yambi.jp/kyouen/" target="_blank" rel="noopener noreferrer">靈感來自 Kyouen ↗</a>
+</footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(()=>{const canvas=document.querySelector('#board'),ctx=canvas.getContext('2d'),sizeInput=document.querySelector('#size');let n=9,points=[],turn=0,history=[],future=[],finished=false,hover=null;const dpr=()=>window.devicePixelRatio||1;function xy(p){let pad=30,step=(canvas.width/dpr()-pad*2)/(n-1);return[pad+p.x*step,pad+p.y*step]}function draw(){if(!canvas.width)return;let d=dpr(),w=canvas.width/d,pad=Math.min(30,w*.075),step=(w-pad*2)/(n-1);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,w);ctx.fillStyle='#edf0e8';ctx.fillRect(0,0,w,w);ctx.strokeStyle='#cdd7cc';ctx.lineWidth=1;for(let i=0;i<n;i++){let v=pad+i*step;ctx.beginPath();ctx.moveTo(pad,v);ctx.lineTo(w-pad,v);ctx.moveTo(v,pad);ctx.lineTo(v,w-pad);ctx.stroke()}ctx.fillStyle='#9eae9f';let m=(n-1)/2;for(let [a,b] of [[m,m],[2,2],[2,n-3],[n-3,2],[n-3,n-3]]){let[x,y]=xy({x:a,y:b});ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill()}let last=points.at(-1);if(last&&points.length>=4&&finished){let c=findCircle(points).find(c=>c.points.includes(last));if(c){let[x,y]=xy({x:c.cx,y:c.cy});ctx.beginPath();ctx.arc(x,y,c.r*step,0,Math.PI*2);ctx.strokeStyle='#db735a';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.stroke();ctx.setLineDash([])}}for(let p of points){let[x,y]=xy(p);ctx.beginPath();ctx.arc(x,y,Math.max(5,step*.19),0,Math.PI*2);ctx.fillStyle=p.player===0?'#db735a':'#174c40';ctx.fill();ctx.beginPath();ctx.arc(x,y,Math.max(2,step*.07),0,Math.PI*2);ctx.fillStyle='#ffffffaa';ctx.fill()}if(hover&&!finished&&!points.some(p=>p.x===hover.x&&p.y===hover.y)){let[x,y]=xy(hover);ctx.beginPath();ctx.arc(x,y,step*.17,0,Math.PI*2);ctx.fillStyle=turn===0?'#db735a55':'#174c4055';ctx.fill()}}function resize(){let r=canvas.getBoundingClientRect(),d=dpr();canvas.width=r.width*d;canvas.height=r.height*d;draw()}function findCircle(ps){let found=[];for(let a=0;a<ps.length-2;a++)for(let b=a+1;b<ps.length-1;b++)for(let c=b+1;c<ps.length;c++){let p=ps[a],q=ps[b],r=ps[c],den=2*(p.x*(q.y-r.y)+q.x*(r.y-p.y)+r.x*(p.y-q.y));if(Math.abs(den)<1e-8)continue;let ux=((p.x*p.x+p.y*p.y)*(q.y-r.y)+(q.x*q.x+q.y*q.y)*(r.y-p.y)+(r.x*r.x+r.y*r.y)*(p.y-q.y))/den,uy=((p.x*p.x+p.y*p.y)*(r.x-q.x)+(q.x*q.x+q.y*q.y)*(p.x-r.x)+(r.x*r.x+r.y*r.y)*(q.x-p.x))/den,R=Math.hypot(p.x-ux,p.y-uy);for(let t of ps){if(t===p||t===q||t===r)continue;if(Math.abs(Math.hypot(t.x-ux,t.y-uy)-R)<1e-7&&!found.some(f=>f.points.includes(t)))found.push({cx:ux,cy:uy,r:R,points:[p,q,r,t]})}}return found}function update(){document.querySelector('#turnLabel').textContent=finished?'對局已結束':`玩家 ${turn+1} 的回合`;document.querySelector('#turn').className='turn '+(turn?'p2':'');document.querySelector('#moveCount').textContent=points.length;document.querySelector('#undo').disabled=!history.length;document.querySelector('#redo').disabled=!future.length;document.querySelector('#status').innerHTML=finished?`玩家 ${points.at(-1).player+1} 輸掉了！<small>四點共圓，棋局結束。</small>`:`輪到玩家 ${turn+1} 落子<small>避開讓任意四點落在同一圓上的位置。</small>`;document.querySelector('#history').innerHTML=points.slice(-8).map((p,i)=>`<span>${points.length-Math.min(points.length,8)+i+1}. P${p.player+1} (${p.x+1},${p.y+1})</span>`).join('');draw()}function place(x,y){if(finished||points.some(p=>p.x===x&&p.y===y))return;history.push({points:points.slice(),turn,finished});future=[];let p={x,y,player:turn};points.push(p);if(findCircle(points).some(c=>c.points.includes(p)))finished=true;else if(points.length===n*n)finished=true;else turn=1-turn;update()}function hit(e){let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1),x=Math.round((e.clientX-r.left-pad)/step),y=Math.round((e.clientY-r.top-pad)/step);if(x>=0&&y>=0&&x<n&&y<n)place(x,y)}canvas.addEventListener('click',hit);
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){e.preventDefault()}},{passive:false});canvas.addEventListener('pointermove',e=>{let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1);hover={x:Math.round((e.clientX-r.left-pad)/step),y:Math.round((e.clientY-r.top-pad)/step)};draw()});canvas.addEventListener('pointerleave',()=>{hover=null;draw()});function restore(stack,dest){if(!stack.length)return;dest.push({points:points.slice(),turn,finished});let s=stack.pop();points=s.points;turn=s.turn;finished=s.finished;update()}document.querySelector('#undo').onclick=()=>restore(history,future);document.querySelector('#redo').onclick=()=>restore(future,history);document.querySelector('#reset').onclick=()=>{points=[];turn=0;history=[];future=[];finished=false;update()};sizeInput.oninput=()=>{n=+sizeInput.value;document.querySelector('#sizeOut').textContent=`${n} × ${n}`;document.querySelector('#boardLabel').textContent=`${n} × ${n} 棋盤`;points=[];turn=0;history=[];future=[];finished=false;resize()};window.addEventListener('resize',resize);resize();update();
+const shareBtn=document.querySelector('#share');
+async function shareGame(){
+  const data={title:'共圓 KYŌEN',text:'來玩《共圓 KYŌEN》：四點成圓，先成者負。',url:location.href};
+  try{
+    if(navigator.share){await navigator.share(data);return;}
+    await navigator.clipboard.writeText(location.href);
+    showToast('遊戲連結已複製 ✓');
+  }catch(e){
+    if(e&&e.name==='AbortError') return;
+    try{await navigator.clipboard.writeText(location.href);showToast('遊戲連結已複製 ✓');}
+    catch(_){showToast('請從瀏覽器網址列複製遊戲連結');}
+  }
+}
+function showToast(msg){const t=document.querySelector('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove('show'),1800)}
+shareBtn.addEventListener('click',shareGame);
+})();
+</script>
+</body>
+</html>
