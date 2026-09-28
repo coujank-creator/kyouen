@@ -208,8 +208,19 @@ input[type=range]{width:100%;accent-color:var(--green);margin:3px 0 18px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-(()=>{const canvas=document.querySelector('#board'),ctx=canvas.getContext('2d'),sizeInput=document.querySelector('#size');let n=9,points=[],turn=0,history=[],future=[],finished=false,hover=null;const dpr=()=>window.devicePixelRatio||1;function xy(p){let pad=30,step=(canvas.width/dpr()-pad*2)/(n-1);return[pad+p.x*step,pad+p.y*step]}function draw(){if(!canvas.width)return;let d=dpr(),w=canvas.width/d,pad=Math.min(30,w*.075),step=(w-pad*2)/(n-1);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,w);ctx.fillStyle='#edf0e8';ctx.fillRect(0,0,w,w);ctx.strokeStyle='#cdd7cc';ctx.lineWidth=1;for(let i=0;i<n;i++){let v=pad+i*step;ctx.beginPath();ctx.moveTo(pad,v);ctx.lineTo(w-pad,v);ctx.moveTo(v,pad);ctx.lineTo(v,w-pad);ctx.stroke()}ctx.fillStyle='#9eae9f';let m=(n-1)/2;for(let [a,b] of [[m,m],[2,2],[2,n-3],[n-3,2],[n-3,n-3]]){let[x,y]=xy({x:a,y:b});ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill()}let last=points.at(-1);if(last&&points.length>=4&&finished){let c=findCircle(points).find(c=>c.points.includes(last));if(c){let[x,y]=xy({x:c.cx,y:c.cy});ctx.beginPath();ctx.arc(x,y,c.r*step,0,Math.PI*2);ctx.strokeStyle='#db735a';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.stroke();ctx.setLineDash([])}}for(let p of points){let[x,y]=xy(p);ctx.beginPath();ctx.arc(x,y,Math.max(5,step*.19),0,Math.PI*2);ctx.fillStyle=p.player===0?'#db735a':'#174c40';ctx.fill();ctx.beginPath();ctx.arc(x,y,Math.max(2,step*.07),0,Math.PI*2);ctx.fillStyle='#ffffffaa';ctx.fill()}if(hover&&!finished&&!points.some(p=>p.x===hover.x&&p.y===hover.y)){let[x,y]=xy(hover);ctx.beginPath();ctx.arc(x,y,step*.17,0,Math.PI*2);ctx.fillStyle=turn===0?'#db735a55':'#174c4055';ctx.fill()}}function resize(){let r=canvas.getBoundingClientRect(),d=dpr();canvas.width=r.width*d;canvas.height=r.height*d;draw()}function findCircle(ps){let found=[];for(let a=0;a<ps.length-2;a++)for(let b=a+1;b<ps.length-1;b++)for(let c=b+1;c<ps.length;c++){let p=ps[a],q=ps[b],r=ps[c],den=2*(p.x*(q.y-r.y)+q.x*(r.y-p.y)+r.x*(p.y-q.y));if(Math.abs(den)<1e-8)continue;let ux=((p.x*p.x+p.y*p.y)*(q.y-r.y)+(q.x*q.x+q.y*q.y)*(r.y-p.y)+(r.x*r.x+r.y*r.y)*(p.y-q.y))/den,uy=((p.x*p.x+p.y*p.y)*(r.x-q.x)+(q.x*q.x+q.y*q.y)*(p.x-r.x)+(r.x*r.x+r.y*r.y)*(q.x-p.x))/den,R=Math.hypot(p.x-ux,p.y-uy);for(let t of ps){if(t===p||t===q||t===r)continue;if(Math.abs(Math.hypot(t.x-ux,t.y-uy)-R)<1e-7&&!found.some(f=>f.points.includes(t)))found.push({cx:ux,cy:uy,r:R,points:[p,q,r,t]})}}return found}function update(){document.querySelector('#turnLabel').textContent=finished?'對局已結束':`玩家 ${turn+1} 的回合`;document.querySelector('#turn').className='turn '+(turn?'p2':'');document.querySelector('#moveCount').textContent=points.length;document.querySelector('#undo').disabled=!history.length;document.querySelector('#redo').disabled=!future.length;document.querySelector('#status').innerHTML=finished?`玩家 ${points.at(-1).player+1} 輸掉了！<small>四點共圓，棋局結束。</small>`:`輪到玩家 ${turn+1} 落子<small>避開讓任意四點落在同一圓上的位置。</small>`;document.querySelector('#history').innerHTML=points.slice(-8).map((p,i)=>`<span>${points.length-Math.min(points.length,8)+i+1}. P${p.player+1} (${p.x+1},${p.y+1})</span>`).join('');draw()}function place(x,y){if(finished||points.some(p=>p.x===x&&p.y===y))return;history.push({points:points.slice(),turn,finished});future=[];let p={x,y,player:turn};points.push(p);if(findCircle(points).some(c=>c.points.includes(p)))finished=true;else if(points.length===n*n)finished=true;else turn=1-turn;update()}function hit(e){let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1),x=Math.round((e.clientX-r.left-pad)/step),y=Math.round((e.clientY-r.top-pad)/step);if(x>=0&&y>=0&&x<n&&y<n)place(x,y)}canvas.addEventListener('click',hit);
-canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){e.preventDefault()}},{passive:false});canvas.addEventListener('pointermove',e=>{let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1);hover={x:Math.round((e.clientX-r.left-pad)/step),y:Math.round((e.clientY-r.top-pad)/step)};draw()});canvas.addEventListener('pointerleave',()=>{hover=null;draw()});function restore(stack,dest){if(!stack.length)return;dest.push({points:points.slice(),turn,finished});let s=stack.pop();points=s.points;turn=s.turn;finished=s.finished;update()}document.querySelector('#undo').onclick=()=>restore(history,future);document.querySelector('#redo').onclick=()=>restore(future,history);document.querySelector('#reset').onclick=()=>{points=[];turn=0;history=[];future=[];finished=false;update()};sizeInput.oninput=()=>{n=+sizeInput.value;document.querySelector('#sizeOut').textContent=`${n} × ${n}`;document.querySelector('#boardLabel').textContent=`${n} × ${n} 棋盤`;points=[];turn=0;history=[];future=[];finished=false;resize()};window.addEventListener('resize',resize);resize();update();})();
+(()=>{const canvas=document.querySelector('#board'),ctx=canvas.getContext('2d'),sizeInput=document.querySelector('#size');let n=9,points=[],turn=0,history=[],future=[],finished=false,hover=null;const dpr=()=>window.devicePixelRatio||1;function xy(p){let pad=30,step=(canvas.width/dpr()-pad*2)/(n-1);return[pad+p.x*step,pad+p.y*step]}function draw(){if(!canvas.width)return;let d=dpr(),w=canvas.width/d,pad=Math.min(30,w*.075),step=(w-pad*2)/(n-1);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,w);ctx.fillStyle='#edf0e8';ctx.fillRect(0,0,w,w);ctx.strokeStyle='#cdd7cc';ctx.lineWidth=1;for(let i=0;i<n;i++){let v=pad+i*step;ctx.beginPath();ctx.moveTo(pad,v);ctx.lineTo(w-pad,v);ctx.moveTo(v,pad);ctx.lineTo(v,w-pad);ctx.stroke()}ctx.fillStyle='#9eae9f';let m=(n-1)/2;for(let [a,b] of [[m,m],[2,2],[2,n-3],[n-3,2],[n-3,n-3]]){let[x,y]=xy({x:a,y:b});ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill()}let last=points.at(-1);if(last&&points.length>=4&&finished){let c=findCircle(points).find(c=>c.points.includes(last));if(c){let[x,y]=xy({x:c.cx,y:c.cy});ctx.beginPath();ctx.arc(x,y,c.r*step,0,Math.PI*2);ctx.strokeStyle='#db735a';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.stroke();ctx.setLineDash([])}}for(let p of points){let[x,y]=xy(p);ctx.beginPath();ctx.arc(x,y,Math.max(5,step*.19),0,Math.PI*2);ctx.fillStyle=p.player===0?'#db735a':'#174c40';ctx.fill();ctx.beginPath();ctx.arc(x,y,Math.max(2,step*.07),0,Math.PI*2);ctx.fillStyle='#ffffffaa';ctx.fill()}if(hover&&!finished&&!points.some(p=>p.x===hover.x&&p.y===hover.y)){let[x,y]=xy(hover);ctx.beginPath();ctx.arc(x,y,step*.17,0,Math.PI*2);ctx.fillStyle=turn===0?'#db735a55':'#174c4055';ctx.fill()}}function resize(){let r=canvas.getBoundingClientRect(),d=dpr();canvas.width=r.width*d;canvas.height=r.height*d;draw()}function findCircle(ps){let found=[];for(let a=0;a<ps.length-2;a++)for(let b=a+1;b<ps.length-1;b++)for(let c=b+1;c<ps.length;c++){let p=ps[a],q=ps[b],r=ps[c],den=2*(p.x*(q.y-r.y)+q.x*(r.y-p.y)+r.x*(p.y-q.y));if(Math.abs(den)<1e-8)continue;let ux=((p.x*p.x+p.y*p.y)*(q.y-r.y)+(q.x*q.x+q.y*q.y)*(r.y-p.y)+(r.x*r.x+r.y*r.y)*(p.y-q.y))/den,uy=((p.x*p.x+p.y*p.y)*(r.x-q.x)+(q.x*q.x+q.y*q.y)*(p.x-r.x)+(r.x*r.x+r.y*r.y)*(q.x-p.x))/den,R=Math.hypot(p.x-ux,p.y-uy);for(let t of ps){if(t===p||t===q||t===r)continue;if(Math.abs(Math.hypot(t.x-ux,t.y-uy)-R)<1e-7&&!found.some(f=>f.points.includes(t)))found.push({cx:ux,cy:uy,r:R,points:[p,q,r,t]})}}return found}function update(){document.querySelector('#turnLabel').textContent=finished?'對局已結束':`玩家 ${turn+1} 的回合`;document.querySelector('#turn').className='turn '+(turn?'p2':'');document.querySelector('#moveCount').textContent=points.length;document.querySelector('#undo').disabled=!history.length;document.querySelector('#redo').disabled=!future.length;document.querySelector('#status').innerHTML=finished?`玩家 ${points.at(-1).player+1} 輸掉了！<small>四點共圓，棋局結束。</small>`:`輪到玩家 ${turn+1} 落子<small>避開讓任意四點落在同一圓上的位置。</small>`;document.querySelector('#history').innerHTML=points.slice(-8).map((p,i)=>`<span>${points.length-Math.min(points.length,8)+i+1}. P${p.player+1} (${p.x+1},${p.y+1})</span>`).join('');draw()}function place(x,y){if(finished||points.some(p=>p.x===x&&p.y===y))return;history.push({points:points.slice(),turn,finished});future=[];let p={x,y,player:turn};points.push(p);if(findCircle(points).some(c=>c.points.includes(p)))finished=true;else if(points.length===n*n)finished=true;else turn=1-turn;update();if(window.kyouen&&typeof window.kyouen._onMove==='function')window.kyouen._onMove()}function hit(e){let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1),x=Math.round((e.clientX-r.left-pad)/step),y=Math.round((e.clientY-r.top-pad)/step);if(x>=0&&y>=0&&x<n&&y<n)place(x,y)}canvas.addEventListener('click',hit);
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){e.preventDefault()}},{passive:false});canvas.addEventListener('pointermove',e=>{let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1);hover={x:Math.round((e.clientX-r.left-pad)/step),y:Math.round((e.clientY-r.top-pad)/step)};draw()});canvas.addEventListener('pointerleave',()=>{hover=null;draw()});function restore(stack,dest){if(!stack.length)return;dest.push({points:points.slice(),turn,finished});let s=stack.pop();points=s.points;turn=s.turn;finished=s.finished;update()}document.querySelector('#undo').onclick=()=>restore(history,future);document.querySelector('#redo').onclick=()=>restore(future,history);document.querySelector('#reset').onclick=()=>{points=[];turn=0;history=[];future=[];finished=false;update()};sizeInput.oninput=()=>{n=+sizeInput.value;document.querySelector('#sizeOut').textContent=`${n} × ${n}`;document.querySelector('#boardLabel').textContent=`${n} × ${n} 棋盤`;points=[];turn=0;history=[];future=[];finished=false;resize()};window.addEventListener('resize',resize);
+window.kyouen={
+  get points(){return points},
+  get turn(){return turn},
+  get finished(){return finished},
+  get n(){return n},
+  findCircle,
+  reset:()=>{points=[];turn=0;history=[];future=[];finished=false;update()},
+  setOnMove:fn=>{window.kyouen._onMove=fn},
+  _onMove:null
+};
+resize();update();})();
 
 /* ---------- KYŌEN V1.1 match layer ---------- */
 const $ = s => document.querySelector(s);
@@ -266,9 +277,9 @@ function updateMatchUI(){
   $('#p2Label').textContent = match.p2;
   modalP1Label.textContent = match.p1;
   modalP2Label.textContent = match.p2;
-  $('#p1Card').classList.toggle('active', turn===0 && !finished);
-  $('#p2Card').classList.toggle('active', turn===1 && !finished);
-  $('#turnLabel').textContent = finished ? '對局已結束' : `${turn===0 ? match.p1 : match.p2} 的回合`;
+  $('#p1Card').classList.toggle('active', kyouen.turn===0 && !kyouen.finished);
+  $('#p2Card').classList.toggle('active', kyouen.turn===1 && !kyouen.finished);
+  $('#turnLabel').textContent = kyouen.finished ? '對局已結束' : `${kyouen.turn===0 ? match.p1 : match.p2} 的回合`;
   document.title = `共圓 KYŌEN｜${match.p1} vs ${match.p2}`;
 }
 
@@ -283,8 +294,8 @@ function startMatch(){
   saveMatch();
   updateMatchUI();
   startScreen.classList.add('hidden');
-  gameOver.classList.remove('show');
-  $('#reset').click();
+  gameOver.classList.remove('show'); gameOver.classList.add('hidden');
+  kyouen.reset();
   showToast('第 1 局開始');
 }
 
@@ -292,22 +303,22 @@ function startNextRound(){
   match.round += 1;
   saveMatch();
   updateMatchUI();
-  gameOver.classList.remove('show');
-  $('#reset').click();
+  gameOver.classList.remove('show'); gameOver.classList.add('hidden');
+  kyouen.reset();
   showToast(`第 ${match.round} 局開始`);
 }
 
 function openNewMatch(){
-  gameOver.classList.remove('show');
+  gameOver.classList.remove('show'); gameOver.classList.add('hidden');
   startScreen.classList.remove('hidden');
   playerName1.value = match.p1;
   playerName2.value = match.p2;
 }
 
 function finishRound(){
-  const last = points.at(-1);
+  const last = kyouen.points.at(-1);
   if(!last) return;
-  if(findCircle(points).some(c=>c.points.includes(last))){
+  if(kyouen.findCircle(kyouen.points).some(c=>c.points.includes(last))){
     // The player who creates the circle loses, so the other player gets the point.
     const loser = last.player;
     const winner = 1 - loser;
@@ -319,14 +330,14 @@ function finishRound(){
     gameOverTitle.textContent = '本局結束';
     winnerNameEl.textContent = winner === 0 ? match.p1 : match.p2;
     gameOverText.textContent = `${last.player === 0 ? match.p1 : match.p2} 形成四點共圓，因此本局負。`;
-    gameOver.classList.add('show');
+    gameOver.classList.remove('hidden'); gameOver.classList.add('show');
     playTone(180, .16);
-  } else if(points.length === n*n){
+  } else if(kyouen.points.length === kyouen.n * kyouen.n){
     gameOverTitle.textContent = '本局和局';
     winnerNameEl.textContent = '和局';
     gameOverText.textContent = '棋盤已滿，沒有形成四點共圓。';
     $('#status').innerHTML = '本局和局<small>棋盤已滿，沒有形成四點共圓。</small>';
-    gameOver.classList.add('show');
+    gameOver.classList.remove('hidden'); gameOver.classList.add('show');
     playTone(260, .12);
   }
 }
@@ -395,16 +406,11 @@ document.querySelectorAll('.name-input').forEach(input=>{
   input.addEventListener('keydown', e=>{ if(e.key==='Enter') startMatch(); });
 });
 
-const originalPlace = place;
-place = function(x,y){
-  const before = points.length;
-  originalPlace(x,y);
-  if(points.length > before){
-    playTone(turn === 0 ? 340 : 410, .055);
-    updateMatchUI();
-    if(finished) setTimeout(finishRound, 80);
-  }
-};
+kyouen.setOnMove(()=>{
+  playTone(kyouen.turn === 0 ? 340 : 410, .055);
+  updateMatchUI();
+  if(kyouen.finished) setTimeout(finishRound, 80);
+});
 
 updateMatchUI();
 startScreen.classList.remove('hidden');
