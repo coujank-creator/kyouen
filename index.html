@@ -93,7 +93,7 @@ input[type=range]{width:100%;accent-color:var(--green);margin:3px 0 18px}
 .score-divider{color:var(--muted)}
 .small-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
 .small-actions .btn{flex:1}
-.start-size-control{margin:0 0 12px;text-align:left}.start-size-control input[type=range]{margin-bottom:4px}.settings-row{display:flex;gap:8px;margin-bottom:18px}
+.start-size-control{margin:0 0 12px;text-align:left}.start-game-actions{display:grid;gap:8px;margin-top:14px}.start-game-actions .btn{width:100%}.start-size-control input[type=range]{margin-bottom:4px}.settings-row{display:flex;gap:8px;margin-bottom:18px}
 .settings-row .btn{flex:1}
 .online-box{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}.online-title{font-size:12px;font-weight:700;margin-bottom:10px}.online-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.room-code{margin-top:10px;background:#edf0e8;border-radius:5px;padding:9px 10px;font:11px 'DM Mono';word-break:break-all;color:var(--green)}.connection{display:flex;align-items:center;gap:7px;font-size:11px;color:#68746e;margin:10px 0 0}.connection-dot{width:7px;height:7px;border-radius:50%;background:#aab4ae}.connection-dot.online{background:#2d8a61;box-shadow:0 0 0 4px #2d8a6120}.connection-dot.waiting{background:var(--coral);box-shadow:0 0 0 4px #db735a20}.join-input{width:100%;border:1px solid var(--line);background:white;border-radius:5px;padding:11px 10px;outline:none;text-transform:uppercase;font:12px 'DM Mono';letter-spacing:.08em}.join-input:focus{border-color:var(--green);box-shadow:0 0 0 3px #174c4012}
 @media(max-width:800px){
@@ -136,7 +136,11 @@ input[type=range]{width:100%;accent-color:var(--green);margin:3px 0 18px}
       <div class="room-code" id="roomCode" hidden></div>
       <div id="joinArea" hidden style="margin-top:10px"><input class="join-input" id="joinCode" placeholder="輸入朋友的房間代碼" autocomplete="off" spellcheck="false"></div>
     </div>
-    <button class="btn primary" id="startGame">開始對局　→</button><button class="btn" id="localMode" style="margin-top:8px">返回本機對局</button>
+    <div class="start-game-actions">
+      <button class="btn primary" id="startGame">本機雙人對局　→</button>
+      <button class="btn" id="aiGame">與 AI 對戰　→</button>
+    </div>
+    <button class="btn" id="localMode" style="width:100%;margin-top:8px">返回本機對局</button>
   </div>
 </div>
 
@@ -226,7 +230,7 @@ input[type=range]{width:100%;accent-color:var(--green);margin:3px 0 18px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-(()=>{const canvas=document.querySelector('#board'),ctx=canvas.getContext('2d'),sizeInput=document.querySelector('#size');let n=9,points=[],turn=0,history=[],future=[],finished=false,hover=null;const dpr=()=>window.devicePixelRatio||1;function xy(p){let pad=30,step=(canvas.width/dpr()-pad*2)/(n-1);return[pad+p.x*step,pad+p.y*step]}function draw(){if(!canvas.width)return;let d=dpr(),w=canvas.width/d,pad=Math.min(30,w*.075),step=(w-pad*2)/(n-1);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,w);ctx.fillStyle='#edf0e8';ctx.fillRect(0,0,w,w);ctx.strokeStyle='#cdd7cc';ctx.lineWidth=1;for(let i=0;i<n;i++){let v=pad+i*step;ctx.beginPath();ctx.moveTo(pad,v);ctx.lineTo(w-pad,v);ctx.moveTo(v,pad);ctx.lineTo(v,w-pad);ctx.stroke()}ctx.fillStyle='#9eae9f';let m=(n-1)/2;for(let [a,b] of [[m,m],[2,2],[2,n-3],[n-3,2],[n-3,n-3]]){let[x,y]=xy({x:a,y:b});ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill()}let last=points.at(-1);if(last&&points.length>=4&&finished){let c=findCircle(points).find(c=>c.points.includes(last));if(c){ctx.beginPath();ctx.strokeStyle='#db735a';ctx.lineWidth=2;ctx.setLineDash([5,5]);if(c.collinear){let a=c.points[0],b=c.points.find(t=>t.x!==a.x||t.y!==a.y),dx=b.x-a.x,dy=b.y-a.y,ts=[];for(let xx=0;xx<n;xx++)if(dx)ts.push((xx-a.x)/dx);for(let yy=0;yy<n;yy++)if(dy)ts.push((yy-a.y)/dy);let valid=ts.filter(t=>a.x+t*dx>=0&&a.x+t*dx<=n-1&&a.y+t*dy>=0&&a.y+t*dy<=n-1);let u=xy({x:a.x+Math.min(...valid)*dx,y:a.y+Math.min(...valid)*dy}),v=xy({x:a.x+Math.max(...valid)*dx,y:a.y+Math.max(...valid)*dy});ctx.moveTo(...u);ctx.lineTo(...v)}else{let[x,y]=xy({x:c.cx,y:c.cy});ctx.arc(x,y,c.r*step,0,Math.PI*2)}ctx.stroke();ctx.setLineDash([])}}for(let p of points){let[x,y]=xy(p);ctx.beginPath();ctx.arc(x,y,Math.max(5,step*.19),0,Math.PI*2);ctx.fillStyle=p.player===0?'#db735a':'#174c40';ctx.fill();ctx.beginPath();ctx.arc(x,y,Math.max(2,step*.07),0,Math.PI*2);ctx.fillStyle='#ffffffaa';ctx.fill()}if(hover&&!finished&&!points.some(p=>p.x===hover.x&&p.y===hover.y)){let[x,y]=xy(hover);ctx.beginPath();ctx.arc(x,y,step*.17,0,Math.PI*2);ctx.fillStyle=turn===0?'#db735a55':'#174c4055';ctx.fill()}}function resize(){let r=canvas.getBoundingClientRect(),d=dpr();canvas.width=r.width*d;canvas.height=r.height*d;draw()}function findCircle(ps){let found=[];const add=(pts,extra={})=>{const key=pts.map(p=>ps.indexOf(p)).sort((a,b)=>a-b).join(',');if(!found.some(f=>f._key===key))found.push({...extra,points:pts,_key:key})};for(let a=0;a<ps.length-3;a++)for(let b=a+1;b<ps.length-2;b++)for(let c=b+1;c<ps.length-1;c++)for(let d=c+1;d<ps.length;d++){const quad=[ps[a],ps[b],ps[c],ps[d]];const a0=quad[0],b0=quad[1],dx=b0.x-a0.x,dy=b0.y-a0.y;let collinear=quad.every(p=>dx*(p.y-a0.y)-dy*(p.x-a0.x)===0);if(collinear){add(quad,{collinear:true});continue}let circle=null;for(let i=0;i<4&&!circle;i++)for(let j=i+1;j<4&&!circle;j++)for(let k=j+1;k<4&&!circle;k++){const p=quad[i],q=quad[j],r=quad[k],den=2*(p.x*(q.y-r.y)+q.x*(r.y-p.y)+r.x*(p.y-q.y));if(Math.abs(den)<1e-8)continue;const ux=((p.x*p.x+p.y*p.y)*(q.y-r.y)+(q.x*q.x+q.y*q.y)*(r.y-p.y)+(r.x*r.x+r.y*r.y)*(p.y-q.y))/den,uy=((p.x*p.x+p.y*p.y)*(r.x-q.x)+(q.x*q.x+q.y*q.y)*(p.x-r.x)+(r.x*r.x+r.y*r.y)*(q.x-p.x))/den,R=Math.hypot(p.x-ux,p.y-uy),t=quad.find(t=>t!==p&&t!==q&&t!==r);if(Math.abs(Math.hypot(t.x-ux,t.y-uy)-R)<1e-7)circle={cx:ux,cy:uy,r:R}}if(circle)add(quad,circle)}return found.map(({_key,...f})=>f)}function update(){document.querySelector('#turnLabel').textContent=finished?'對局已結束':`玩家 ${turn+1} 的回合`;document.querySelector('#turn').className='turn '+(turn?'p2':'');document.querySelector('#moveCount').textContent=points.length;document.querySelector('#undo').disabled=!history.length;document.querySelector('#redo').disabled=!future.length;document.querySelector('#status').innerHTML=finished?`玩家 ${points.at(-1).player+1} 輸掉了！<small>四點共圓，棋局結束。</small>`:`輪到玩家 ${turn+1} 落子<small>避開讓任意四點落在同一圓上的位置。</small>`;document.querySelector('#history').innerHTML=points.slice(-8).map((p,i)=>`<span>${points.length-Math.min(points.length,8)+i+1}. P${p.player+1} (${p.x+1},${p.y+1})</span>`).join('');draw()}function place(x,y,remote=false){if(remote){if(!window.kyouen||window.kyouen._role!=='host'||turn!==1||finished||!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=n||y>=n||points.some(p=>p.x===x&&p.y===y))return false}else{if(window.kyouen&&window.kyouen._remoteGuest){if(turn===1&&typeof window.kyouen._requestMove==='function'&&!finished)window.kyouen._requestMove(x,y);return false}if(finished||points.some(p=>p.x===x&&p.y===y))return false;if(window.kyouen&&window.kyouen._role==='host'&&turn!==0)return false}history.push({points:points.slice(),turn,finished});future=[];let p={x,y,player:turn};points.push(p);if(findCircle(points).some(c=>c.points.includes(p)))finished=true;else if(points.length===n*n)finished=true;else turn=1-turn;update();if(window.kyouen&&typeof window.kyouen._onMove==='function')window.kyouen._onMove();return true}function hit(e){let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1),x=Math.round((e.clientX-r.left-pad)/step),y=Math.round((e.clientY-r.top-pad)/step);if(x>=0&&y>=0&&x<n&&y<n)place(x,y)}canvas.addEventListener('click',hit);
+(()=>{const canvas=document.querySelector('#board'),ctx=canvas.getContext('2d'),sizeInput=document.querySelector('#size');let n=9,points=[],turn=0,history=[],future=[],finished=false,hover=null;const dpr=()=>window.devicePixelRatio||1;function xy(p){let pad=30,step=(canvas.width/dpr()-pad*2)/(n-1);return[pad+p.x*step,pad+p.y*step]}function draw(){if(!canvas.width)return;let d=dpr(),w=canvas.width/d,pad=Math.min(30,w*.075),step=(w-pad*2)/(n-1);ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,w);ctx.fillStyle='#edf0e8';ctx.fillRect(0,0,w,w);ctx.strokeStyle='#cdd7cc';ctx.lineWidth=1;for(let i=0;i<n;i++){let v=pad+i*step;ctx.beginPath();ctx.moveTo(pad,v);ctx.lineTo(w-pad,v);ctx.moveTo(v,pad);ctx.lineTo(v,w-pad);ctx.stroke()}ctx.fillStyle='#9eae9f';let m=(n-1)/2;for(let [a,b] of [[m,m],[2,2],[2,n-3],[n-3,2],[n-3,n-3]]){let[x,y]=xy({x:a,y:b});ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill()}let last=points.at(-1);if(last&&points.length>=4&&finished){let c=findCircle(points).find(c=>c.points.includes(last));if(c){ctx.beginPath();ctx.strokeStyle='#db735a';ctx.lineWidth=2;ctx.setLineDash([5,5]);if(c.collinear){let a=c.points[0],b=c.points.find(t=>t.x!==a.x||t.y!==a.y),dx=b.x-a.x,dy=b.y-a.y,ts=[];for(let xx=0;xx<n;xx++)if(dx)ts.push((xx-a.x)/dx);for(let yy=0;yy<n;yy++)if(dy)ts.push((yy-a.y)/dy);let valid=ts.filter(t=>a.x+t*dx>=0&&a.x+t*dx<=n-1&&a.y+t*dy>=0&&a.y+t*dy<=n-1);let u=xy({x:a.x+Math.min(...valid)*dx,y:a.y+Math.min(...valid)*dy}),v=xy({x:a.x+Math.max(...valid)*dx,y:a.y+Math.max(...valid)*dy});ctx.moveTo(...u);ctx.lineTo(...v)}else{let[x,y]=xy({x:c.cx,y:c.cy});ctx.arc(x,y,c.r*step,0,Math.PI*2)}ctx.stroke();ctx.setLineDash([])}}for(let p of points){let[x,y]=xy(p);ctx.beginPath();ctx.arc(x,y,Math.max(5,step*.19),0,Math.PI*2);ctx.fillStyle=p.player===0?'#db735a':'#174c40';ctx.fill();ctx.beginPath();ctx.arc(x,y,Math.max(2,step*.07),0,Math.PI*2);ctx.fillStyle='#ffffffaa';ctx.fill()}if(hover&&!finished&&!points.some(p=>p.x===hover.x&&p.y===hover.y)){let[x,y]=xy(hover);ctx.beginPath();ctx.arc(x,y,step*.17,0,Math.PI*2);ctx.fillStyle=turn===0?'#db735a55':'#174c4055';ctx.fill()}}function resize(){let r=canvas.getBoundingClientRect(),d=dpr();canvas.width=r.width*d;canvas.height=r.height*d;draw()}function findCircle(ps){let found=[];const add=(pts,extra={})=>{const key=pts.map(p=>ps.indexOf(p)).sort((a,b)=>a-b).join(',');if(!found.some(f=>f._key===key))found.push({...extra,points:pts,_key:key})};for(let a=0;a<ps.length-3;a++)for(let b=a+1;b<ps.length-2;b++)for(let c=b+1;c<ps.length-1;c++)for(let d=c+1;d<ps.length;d++){const quad=[ps[a],ps[b],ps[c],ps[d]];const a0=quad[0],b0=quad[1],dx=b0.x-a0.x,dy=b0.y-a0.y;let collinear=quad.every(p=>dx*(p.y-a0.y)-dy*(p.x-a0.x)===0);if(collinear){add(quad,{collinear:true});continue}let circle=null;for(let i=0;i<4&&!circle;i++)for(let j=i+1;j<4&&!circle;j++)for(let k=j+1;k<4&&!circle;k++){const p=quad[i],q=quad[j],r=quad[k],den=2*(p.x*(q.y-r.y)+q.x*(r.y-p.y)+r.x*(p.y-q.y));if(Math.abs(den)<1e-8)continue;const ux=((p.x*p.x+p.y*p.y)*(q.y-r.y)+(q.x*q.x+q.y*q.y)*(r.y-p.y)+(r.x*r.x+r.y*r.y)*(p.y-q.y))/den,uy=((p.x*p.x+p.y*p.y)*(r.x-q.x)+(q.x*q.x+q.y*q.y)*(p.x-r.x)+(r.x*r.x+r.y*r.y)*(q.x-p.x))/den,R=Math.hypot(p.x-ux,p.y-uy),t=quad.find(t=>t!==p&&t!==q&&t!==r);if(Math.abs(Math.hypot(t.x-ux,t.y-uy)-R)<1e-7)circle={cx:ux,cy:uy,r:R}}if(circle)add(quad,circle)}return found.map(({_key,...f})=>f)}function wouldLoseAt(x,y,ps=points){const z={x,y};for(let a=0;a<ps.length-2;a++)for(let b=a+1;b<ps.length-1;b++)for(let c=b+1;c<ps.length;c++){const p=ps[a],q=ps[b],r=ps[c],cross=(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);if(cross===0){if((q.x-p.x)*(z.y-p.y)-(q.y-p.y)*(z.x-p.x)===0)return true;continue}const den=2*cross,ux=((p.x*p.x+p.y*p.y)*(q.y-r.y)+(q.x*q.x+q.y*q.y)*(r.y-p.y)+(r.x*r.x+r.y*r.y)*(p.y-q.y))/den,uy=((p.x*p.x+p.y*p.y)*(r.x-q.x)+(q.x*q.x+q.y*q.y)*(p.x-r.x)+(r.x*r.x+r.y*r.y)*(q.x-p.x))/den,R=Math.hypot(p.x-ux,p.y-uy);if(Math.abs(Math.hypot(z.x-ux,z.y-uy)-R)<1e-7)return true}return false}function update(){document.querySelector('#turnLabel').textContent=finished?'對局已結束':`玩家 ${turn+1} 的回合`;document.querySelector('#turn').className='turn '+(turn?'p2':'');document.querySelector('#moveCount').textContent=points.length;document.querySelector('#undo').disabled=!history.length;document.querySelector('#redo').disabled=!future.length;document.querySelector('#status').innerHTML=finished?`玩家 ${points.at(-1).player+1} 輸掉了！<small>四點共圓，棋局結束。</small>`:`輪到玩家 ${turn+1} 落子<small>避開讓任意四點落在同一圓上的位置。</small>`;document.querySelector('#history').innerHTML=points.slice(-8).map((p,i)=>`<span>${points.length-Math.min(points.length,8)+i+1}. P${p.player+1} (${p.x+1},${p.y+1})</span>`).join('');draw()}function place(x,y,remote=false){if(remote){if(!window.kyouen||window.kyouen._role!=='host'||turn!==1||finished||!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=n||y>=n||points.some(p=>p.x===x&&p.y===y))return false}else{if(window.kyouen&&window.kyouen._remoteGuest){if(turn===1&&typeof window.kyouen._requestMove==='function'&&!finished)window.kyouen._requestMove(x,y);return false}if(finished||points.some(p=>p.x===x&&p.y===y))return false;if(window.kyouen&&window.kyouen._role==='host'&&turn!==0)return false}history.push({points:points.slice(),turn,finished});future=[];let p={x,y,player:turn};points.push(p);if(findCircle(points).some(c=>c.points.includes(p)))finished=true;else if(points.length===n*n)finished=true;else turn=1-turn;update();if(window.kyouen&&typeof window.kyouen._onMove==='function')window.kyouen._onMove();return true}function hit(e){let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1),x=Math.round((e.clientX-r.left-pad)/step),y=Math.round((e.clientY-r.top-pad)/step);if(x>=0&&y>=0&&x<n&&y<n)place(x,y)}canvas.addEventListener('click',hit);
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){e.preventDefault()}},{passive:false});canvas.addEventListener('pointermove',e=>{let r=canvas.getBoundingClientRect(),pad=30,step=(r.width-pad*2)/(n-1);hover={x:Math.round((e.clientX-r.left-pad)/step),y:Math.round((e.clientY-r.top-pad)/step)};draw()});canvas.addEventListener('pointerleave',()=>{hover=null;draw()});function restore(stack,dest){if(!stack.length)return;dest.push({points:points.slice(),turn,finished});let s=stack.pop();points=s.points;turn=s.turn;finished=s.finished;update()}document.querySelector('#undo').onclick=()=>restore(history,future);document.querySelector('#redo').onclick=()=>restore(future,history);document.querySelector('#reset').onclick=()=>{points=[];turn=0;history=[];future=[];finished=false;update()};sizeInput.oninput=()=>{n=+sizeInput.value;document.querySelector('#sizeOut').textContent=`${n} × ${n}`;if(window.startSizeInput){window.startSizeInput.value=n;window.startSizeOut.textContent=`${n} × ${n}`;}document.querySelector('#boardLabel').textContent=`${n} × ${n} 棋盤`;points=[];turn=0;history=[];future=[];finished=false;resize()};window.addEventListener('resize',resize);
 window.startSizeInput=document.querySelector('#startSize');window.startSizeOut=document.querySelector('#startSizeOut');
 window.kyouen={
@@ -235,6 +239,7 @@ window.kyouen={
   get finished(){return finished},
   get n(){return n},
   findCircle,
+  wouldLoseAt,
   reset:()=>{points=[];turn=0;history=[];future=[];finished=false;update()},
   setOnMove:fn=>{window.kyouen._onMove=fn},
   place,
@@ -273,6 +278,7 @@ const modalShare = $('#modalShare');
 const resetScoreBtn = $('#resetScore');
 const soundToggle = $('#soundToggle');
 
+let aiOpponent=false, aiMoveTimer=null, savedPlayer2Name='玩家 2';
 let match = {
   p1: localStorage.getItem('kyouen-p1') || '玩家 1',
   p2: localStorage.getItem('kyouen-p2') || '玩家 2',
@@ -285,6 +291,7 @@ let match = {
 playerName1.value = match.p1;
 playerName2.value = match.p2;
 function setNameEditorRole(role=null){
+  $('#aiGame').disabled=!!role;
   startSizeInput.disabled=role==='guest';
   $('#startSizeLabel').textContent=role==='guest'?'開局棋盤大小（房主設定）':'開局棋盤大小';
   playerName1.disabled=role==='guest';
@@ -322,6 +329,7 @@ function updateMatchUI(){
 }
 
 function startMatch(){
+  clearTimeout(aiMoveTimer);
   applyStartBoardSize();
   const p1 = playerName1.value.trim() || '玩家 1';
   const p2 = playerName2.value.trim() || '玩家 2';
@@ -338,6 +346,15 @@ function startMatch(){
   showToast('第 1 局開始');
 }
 
+function startHumanMatch(){
+  if(aiOpponent){aiOpponent=false;playerName2.disabled=false;playerName2.value=savedPlayer2Name;$('#player2').previousElementSibling.textContent='玩家 2';}
+  startMatch();
+}
+function startAIMatch(){
+  if(!aiOpponent)savedPlayer2Name=playerName2.value.trim()||match.p2||'玩家 2';
+  aiOpponent=true;playerName2.value='AI';playerName2.disabled=true;$('#player2').previousElementSibling.textContent='AI';
+  startMatch();
+}
 function startNextRound(){
   if(window.onlineGame && onlineGame.mode==='online'){
     if(onlineGame.role!=='host'){
@@ -364,7 +381,9 @@ function openNewMatch(){
   gameOver.classList.remove('show'); gameOver.classList.add('hidden');
   startScreen.classList.remove('hidden');
   playerName1.value = match.p1;
-  playerName2.value = match.p2;
+  playerName2.value = aiOpponent ? 'AI' : match.p2;
+  playerName2.disabled=aiOpponent;
+  $('#player2').previousElementSibling.textContent=aiOpponent?'AI':'玩家 2';
 }
 
 function finishRound(){
@@ -439,7 +458,7 @@ async function shareGame(){
   }
 }
 
-$('#startGame').onclick=startMatch;
+$('#startGame').onclick=startHumanMatch;
 $('#nextRound').addEventListener('click', startNextRound);
 $('#newMatch').addEventListener('click', openNewMatch);
 $('#reviewBoard').addEventListener('click', ()=>{ gameOver.classList.remove('show'); gameOver.classList.add('hidden'); });
@@ -488,18 +507,39 @@ function finishRoundGuest(){
   else {const winner=1-last.player;gameOverTitle.textContent='本局結束';winnerNameEl.textContent=`獲勝者: ${winner===0?match.p1:match.p2}`;gameOverText.textContent='';gameOverText.hidden=true;}
   gameOver.classList.remove('hidden');gameOver.classList.add('show');
 }
-function startOnlineAsGuest(){guestRoundShown=false;match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);saveMatch();kyouen.setRole('guest');kyouen.setRemote(true,(x,y)=>{if(onlineGame.conn&&onlineGame.conn.open&&kyouen.turn===1&&!kyouen.finished)onlineGame.conn.send({type:'move',x,y,player:1,turn:1})});if(onlineGame.conn&&onlineGame.conn.open)onlineGame.conn.send({type:'hello',name:match.p2});startScreen.classList.add('hidden');gameOver.classList.remove('show');gameOver.classList.add('hidden')}
-function startOnlineHostGame(){applyStartBoardSize();guestRoundShown=false;match.p1=(playerName1.value.trim()||'玩家 1').slice(0,12);match.round=1;match.score1=0;match.score2=0;saveMatch();startScreen.classList.add('hidden');gameOver.classList.remove('show');gameOver.classList.add('hidden');kyouen.setRemote(false,null);kyouen.setRole('host');kyouen.reset();sendState();showToast('線上對局開始')}
-function hostOnline(){setNameEditorRole('host');onlineGame.mode='hosting';onlineGame.role='host';match.p1=(playerName1.value.trim()||'玩家 1').slice(0,12);match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);match.score1=0;match.score2=0;match.round=1;saveMatch();const peer=makePeer();if(!peer)return;setConnUI('正在建立房間…','waiting');peer.on('open',id=>{roomCode.hidden=false;roomCode.textContent=`房間代碼：${id}`;setConnUI('等待朋友加入…','waiting');showToast('房間已建立，把代碼傳給朋友');$('#startGame').textContent='等待朋友加入…';$('#startGame').disabled=true})}
-function joinOnline(){setNameEditorRole('guest');joinArea.hidden=false;joinCode.focus();$('#startGame').textContent='加入線上對局 →';$('#startGame').onclick=()=>{const id=joinCode.value.trim();if(!id){showToast('請輸入房間代碼');return}match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);onlineGame.mode='joining';onlineGame.role='guest';const peer=onlineGame.peer||makePeer();if(!peer)return;setConnUI('正在連線…','waiting');const conn=peer.connect(id,{reliable:true,serialization:'json'});setupConn(conn)}}
+function startOnlineAsGuest(){exitAIMode();guestRoundShown=false;match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);saveMatch();kyouen.setRole('guest');kyouen.setRemote(true,(x,y)=>{if(onlineGame.conn&&onlineGame.conn.open&&kyouen.turn===1&&!kyouen.finished)onlineGame.conn.send({type:'move',x,y,player:1,turn:1})});if(onlineGame.conn&&onlineGame.conn.open)onlineGame.conn.send({type:'hello',name:match.p2});startScreen.classList.add('hidden');gameOver.classList.remove('show');gameOver.classList.add('hidden')}
+function startOnlineHostGame(){exitAIMode();applyStartBoardSize();guestRoundShown=false;match.p1=(playerName1.value.trim()||'玩家 1').slice(0,12);match.round=1;match.score1=0;match.score2=0;saveMatch();startScreen.classList.add('hidden');gameOver.classList.remove('show');gameOver.classList.add('hidden');kyouen.setRemote(false,null);kyouen.setRole('host');kyouen.reset();sendState();showToast('線上對局開始')}
+function hostOnline(){exitAIMode();setNameEditorRole('host');onlineGame.mode='hosting';onlineGame.role='host';match.p1=(playerName1.value.trim()||'玩家 1').slice(0,12);match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);match.score1=0;match.score2=0;match.round=1;saveMatch();const peer=makePeer();if(!peer)return;setConnUI('正在建立房間…','waiting');peer.on('open',id=>{roomCode.hidden=false;roomCode.textContent=`房間代碼：${id}`;setConnUI('等待朋友加入…','waiting');showToast('房間已建立，把代碼傳給朋友');$('#startGame').textContent='等待朋友加入…';$('#startGame').disabled=true})}
+function joinOnline(){exitAIMode();setNameEditorRole('guest');joinArea.hidden=false;joinCode.focus();$('#startGame').textContent='加入線上對局 →';$('#startGame').onclick=()=>{const id=joinCode.value.trim();if(!id){showToast('請輸入房間代碼');return}match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);onlineGame.mode='joining';onlineGame.role='guest';const peer=onlineGame.peer||makePeer();if(!peer)return;setConnUI('正在連線…','waiting');const conn=peer.connect(id,{reliable:true,serialization:'json'});setupConn(conn)}}
 hostBtn.addEventListener('click',hostOnline);joinBtn.addEventListener('click',joinOnline);
-$('#localMode').addEventListener('click',()=>{onlineGame.mode='local';onlineGame.role=null;joinArea.hidden=true;roomCode.hidden=true;setConnUI('尚未連線','');setNameEditorRole(null);$('#startGame').disabled=false;$('#startGame').textContent='開始對局 →';$('#startGame').onclick=startMatch;kyouen.setRemote(false,null);kyouen.setRole(null);showToast('已切回本機對局')});
+function exitAIMode(){if(!aiOpponent)return;aiOpponent=false;playerName2.disabled=false;playerName2.value=savedPlayer2Name;$('#player2').previousElementSibling.textContent='玩家 2';clearTimeout(aiMoveTimer);}
+function pickAIMove(){
+  const n=kyouen.n,pts=kyouen.points,empty=[];
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(!pts.some(p=>p.x===x&&p.y===y))empty.push({x,y});
+  if(!empty.length)return null;
+  const safe=empty.filter(m=>!kyouen.wouldLoseAt(m.x,m.y,pts));
+  if(!safe.length)return empty[Math.floor(Math.random()*empty.length)];
+  const trial=safe.slice().sort(()=>Math.random()-.5).slice(0,pts.length>30?6:12);
+  let best=[],bestReplies=Infinity;
+  for(const move of trial){
+    const next=pts.concat({x:move.x,y:move.y,player:1});let replies=0;
+    for(const reply of empty){if(reply.x===move.x&&reply.y===move.y)continue;if(!kyouen.wouldLoseAt(reply.x,reply.y,next)){replies++;if(replies>=bestReplies)break}}
+    if(replies<bestReplies){bestReplies=replies;best=[move]}else if(replies===bestReplies)best.push(move);
+    if(bestReplies===0)break;
+  }
+  return best[Math.floor(Math.random()*best.length)]||safe[Math.floor(Math.random()*safe.length)];
+}
+function scheduleAIMove(){clearTimeout(aiMoveTimer);if(!aiOpponent||onlineGame.mode!=='local'||kyouen.finished||kyouen.turn!==1)return;aiMoveTimer=setTimeout(()=>{if(!aiOpponent||onlineGame.mode!=='local'||kyouen.finished||kyouen.turn!==1)return;const move=pickAIMove();if(move)kyouen.place(move.x,move.y)},380)}
+$('#aiGame').addEventListener('click',startAIMatch);
+$('#startGame').onclick=startHumanMatch;
+$('#localMode').addEventListener('click',()=>{exitAIMode();onlineGame.mode='local';onlineGame.role=null;joinArea.hidden=true;roomCode.hidden=true;setConnUI('尚未連線','');setNameEditorRole(null);$('#startGame').disabled=false;$('#startGame').textContent='本機雙人對局　→';$('#startGame').onclick=startHumanMatch;kyouen.setRemote(false,null);kyouen.setRole(null);showToast('已切回本機對局')});
 
 kyouen.setOnMove(()=>{
   playTone(kyouen.turn === 0 ? 340 : 410, .055);
   updateMatchUI();
   if(window.onlineGame && onlineGame.mode==='online' && onlineGame.role==='host' && !kyouen.finished) onlineGame.sendState();
   if(kyouen.finished) setTimeout(()=>{ if(window.onlineGame && onlineGame.mode==='online' && onlineGame.role==='guest') finishRoundGuest(); else finishRound(); }, 80);
+  else scheduleAIMove();
 });
 
 updateMatchUI();
