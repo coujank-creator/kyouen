@@ -275,6 +275,12 @@ let match = {
 
 playerName1.value = match.p1;
 playerName2.value = match.p2;
+function setNameEditorRole(role=null){
+  playerName1.disabled=role==='guest';
+  playerName2.disabled=role==='host';
+  $('label[for="player1"]').textContent=role==='host'?'玩家 1（你）':role==='guest'?'玩家 1（房主）':'玩家 1';
+  $('label[for="player2"]').textContent=role==='guest'?'玩家 2（你）':role==='host'?'玩家 2（朋友）':'玩家 2';
+}
 soundToggle.textContent = match.sound ? '🔊 音效開啟' : '🔇 音效關閉';
 
 function saveMatch(){
@@ -362,18 +368,19 @@ function finishRound(){
     updateMatchUI();
 
     gameOverTitle.textContent = '本局結束';
-    winnerNameEl.textContent = winner === 0 ? match.p1 : match.p2;
-    gameOverText.textContent = `${last.player === 0 ? match.p1 : match.p2} 形成四點共圓，因此本局負。`;
+    winnerNameEl.textContent = `獲勝者: ${winner === 0 ? match.p1 : match.p2}`;
+    gameOverText.textContent = ''; gameOverText.hidden = true;
     gameOver.classList.remove('hidden'); gameOver.classList.add('show');
     playTone(180, .16);
   } else if(kyouen.points.length === kyouen.n * kyouen.n){
     gameOverTitle.textContent = '本局和局';
     winnerNameEl.textContent = '和局';
-    gameOverText.textContent = '棋盤已滿，沒有形成四點共圓。';
+    gameOverText.hidden = false; gameOverText.textContent = '棋盤已滿，沒有形成四點共圓。';
     $('#status').innerHTML = '本局和局<small>棋盤已滿，沒有形成四點共圓。</small>';
     gameOver.classList.remove('hidden'); gameOver.classList.add('show');
     playTone(260, .12);
   }
+  if(window.onlineGame && onlineGame.mode==='online' && onlineGame.role==='host') onlineGame.sendState();
 }
 
 function playTone(freq=300, duration=.08){
@@ -455,7 +462,7 @@ function peerErrorText(e){const map={'peer-unavailable':'找不到這個房間',
 function sendState(){if(!onlineGame.conn||!onlineGame.conn.open)return;onlineGame.conn.send({type:'state',state:{points:kyouen.points.map(p=>({x:p.x,y:p.y,player:p.player})),turn:kyouen.turn,finished:kyouen.finished,n:kyouen.n,score1:match.score1,score2:match.score2,round:match.round,p1:match.p1,p2:match.p2}});}
 onlineGame.sendState=sendState;
 function makePeer(){if(!window.Peer){showToast('線上功能載入失敗，請重新整理頁面');return null}const peer=new Peer();onlineGame.peer=peer;peer.on('open',id=>{onlineGame.room=id});peer.on('connection',conn=>{if(onlineGame.conn&&onlineGame.conn.open){conn.close();return}onlineGame.role='host';setupConn(conn)});peer.on('error',e=>{setConnUI(peerErrorText(e));showToast(peerErrorText(e))});peer.on('disconnected',()=>{if(onlineGame.mode!=='local')setConnUI('與連線服務中斷','waiting')});return peer;}
-function setupConn(conn){onlineGame.conn=conn;conn.on('open',()=>{onlineGame.mode='online';setConnUI(onlineGame.role==='host'?'已連線 · 你是房主':'已連線 · 你是玩家 2','online');if(onlineGame.role==='host'){sendState();showToast('朋友已加入房間 ✓');$('#startGame').disabled=false;$('#startGame').textContent='開始線上對局 →';$('#startGame').onclick=startOnlineHostGame}else{startOnlineAsGuest()}});conn.on('data',msg=>{if(!msg||typeof msg!=='object')return;if(msg.type==='move'&&onlineGame.role==='host'){if(msg.player!==1||msg.turn!==1||kyouen.finished||kyouen.turn!==1)return;if(kyouen._applyGuestMove(msg.x,msg.y))sendState()}else if(msg.type==='state'&&onlineGame.role==='guest'){applyRemoteState(msg.state)}else if(msg.type==='hello'&&onlineGame.role==='host'){match.p2=String(msg.name||'玩家 2').slice(0,12);saveMatch();updateMatchUI();sendState()}else if(msg.type==='nextRound'&&onlineGame.role==='host'){startNextRound()}});conn.on('close',()=>{setConnUI('朋友已離線','waiting');showToast('朋友已離開房間');onlineGame.mode='local';onlineGame.conn=null;kyouen.setRemote(false,null);kyouen.setRole(null);updateMatchUI()});conn.on('error',e=>{setConnUI(peerErrorText(e));showToast(peerErrorText(e))})}
+function setupConn(conn){onlineGame.conn=conn;conn.on('open',()=>{onlineGame.mode='online';setConnUI(onlineGame.role==='host'?'已連線 · 你是房主':'已連線 · 你是玩家 2','online');if(onlineGame.role==='host'){sendState();showToast('朋友已加入房間 ✓');$('#startGame').disabled=false;$('#startGame').textContent='開始線上對局 →';$('#startGame').onclick=startOnlineHostGame}else{startOnlineAsGuest()}});conn.on('data',msg=>{if(!msg||typeof msg!=='object')return;if(msg.type==='move'&&onlineGame.role==='host'){if(msg.player!==1||msg.turn!==1||kyouen.finished||kyouen.turn!==1)return;kyouen._applyGuestMove(msg.x,msg.y)}else if(msg.type==='state'&&onlineGame.role==='guest'){applyRemoteState(msg.state)}else if(msg.type==='hello'&&onlineGame.role==='host'){match.p2=String(msg.name||'玩家 2').slice(0,12);playerName2.value=match.p2;saveMatch();updateMatchUI();sendState()}else if(msg.type==='nextRound'&&onlineGame.role==='host'){startNextRound()}});conn.on('close',()=>{setConnUI('朋友已離線','waiting');showToast('朋友已離開房間');onlineGame.mode='local';onlineGame.conn=null;kyouen.setRemote(false,null);kyouen.setRole(null);updateMatchUI()});conn.on('error',e=>{setConnUI(peerErrorText(e));showToast(peerErrorText(e))})}
 function applyRemoteState(st){if(!st)return;if(!st.finished){guestRoundShown=false;gameOver.classList.remove('show');gameOver.classList.add('hidden')}kyouen._applyStateInternal(st);match.score1=Number(st.score1||0);match.score2=Number(st.score2||0);match.round=Number(st.round||1);match.p1=st.p1||match.p1;match.p2=st.p2||match.p2;saveMatch();updateMatchUI();if(st.finished)setTimeout(finishRoundGuest,30)}
 let guestRoundShown=false;
 function finishRoundGuest(){
@@ -465,21 +472,21 @@ function finishRoundGuest(){
   const draw=kyouen.points.length===kyouen.n*kyouen.n&&!made;
   if(!made&&!draw)return;
   guestRoundShown=true;
-  if(draw){gameOverTitle.textContent='本局和局';winnerNameEl.textContent='和局';gameOverText.textContent='棋盤已滿，沒有形成四點共圓。';}
-  else {const winner=1-last.player;gameOverTitle.textContent='本局結束';winnerNameEl.textContent=winner===0?match.p1:match.p2;gameOverText.textContent=`${last.player===0?match.p1:match.p2} 形成四點共圓，因此本局負。`;}
+  if(draw){gameOverTitle.textContent='本局和局';winnerNameEl.textContent='和局';gameOverText.hidden=false;gameOverText.textContent='棋盤已滿，沒有形成四點共圓。';}
+  else {const winner=1-last.player;gameOverTitle.textContent='本局結束';winnerNameEl.textContent=`獲勝者: ${winner===0?match.p1:match.p2}`;gameOverText.textContent='';gameOverText.hidden=true;}
   gameOver.classList.remove('hidden');gameOver.classList.add('show');
 }
 function startOnlineAsGuest(){guestRoundShown=false;match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);saveMatch();kyouen.setRole('guest');kyouen.setRemote(true,(x,y)=>{if(onlineGame.conn&&onlineGame.conn.open&&kyouen.turn===1&&!kyouen.finished)onlineGame.conn.send({type:'move',x,y,player:1,turn:1})});if(onlineGame.conn&&onlineGame.conn.open)onlineGame.conn.send({type:'hello',name:match.p2});startScreen.classList.add('hidden');gameOver.classList.remove('show');gameOver.classList.add('hidden')}
-function startOnlineHostGame(){guestRoundShown=false;match.round=1;match.score1=0;match.score2=0;saveMatch();startScreen.classList.add('hidden');gameOver.classList.remove('show');gameOver.classList.add('hidden');kyouen.setRemote(false,null);kyouen.setRole('host');kyouen.reset();sendState();showToast('線上對局開始')}
-function hostOnline(){onlineGame.mode='hosting';onlineGame.role='host';match.p1=(playerName1.value.trim()||'玩家 1').slice(0,12);match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);match.score1=0;match.score2=0;match.round=1;saveMatch();const peer=makePeer();if(!peer)return;setConnUI('正在建立房間…','waiting');peer.on('open',id=>{roomCode.hidden=false;roomCode.textContent=`房間代碼：${id}`;setConnUI('等待朋友加入…','waiting');showToast('房間已建立，把代碼傳給朋友');$('#startGame').textContent='等待朋友加入…';$('#startGame').disabled=true})}
-function joinOnline(){joinArea.hidden=false;joinCode.focus();$('#startGame').textContent='加入線上對局 →';$('#startGame').onclick=()=>{const id=joinCode.value.trim();if(!id){showToast('請輸入房間代碼');return}match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);onlineGame.mode='joining';onlineGame.role='guest';const peer=onlineGame.peer||makePeer();if(!peer)return;setConnUI('正在連線…','waiting');const conn=peer.connect(id,{reliable:true,serialization:'json'});setupConn(conn)}}
+function startOnlineHostGame(){guestRoundShown=false;match.p1=(playerName1.value.trim()||'玩家 1').slice(0,12);match.round=1;match.score1=0;match.score2=0;saveMatch();startScreen.classList.add('hidden');gameOver.classList.remove('show');gameOver.classList.add('hidden');kyouen.setRemote(false,null);kyouen.setRole('host');kyouen.reset();sendState();showToast('線上對局開始')}
+function hostOnline(){setNameEditorRole('host');onlineGame.mode='hosting';onlineGame.role='host';match.p1=(playerName1.value.trim()||'玩家 1').slice(0,12);match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);match.score1=0;match.score2=0;match.round=1;saveMatch();const peer=makePeer();if(!peer)return;setConnUI('正在建立房間…','waiting');peer.on('open',id=>{roomCode.hidden=false;roomCode.textContent=`房間代碼：${id}`;setConnUI('等待朋友加入…','waiting');showToast('房間已建立，把代碼傳給朋友');$('#startGame').textContent='等待朋友加入…';$('#startGame').disabled=true})}
+function joinOnline(){setNameEditorRole('guest');joinArea.hidden=false;joinCode.focus();$('#startGame').textContent='加入線上對局 →';$('#startGame').onclick=()=>{const id=joinCode.value.trim();if(!id){showToast('請輸入房間代碼');return}match.p2=(playerName2.value.trim()||'玩家 2').slice(0,12);onlineGame.mode='joining';onlineGame.role='guest';const peer=onlineGame.peer||makePeer();if(!peer)return;setConnUI('正在連線…','waiting');const conn=peer.connect(id,{reliable:true,serialization:'json'});setupConn(conn)}}
 hostBtn.addEventListener('click',hostOnline);joinBtn.addEventListener('click',joinOnline);
-$('#localMode').addEventListener('click',()=>{onlineGame.mode='local';onlineGame.role=null;joinArea.hidden=true;roomCode.hidden=true;setConnUI('尚未連線','');$('#startGame').disabled=false;$('#startGame').textContent='開始對局 →';$('#startGame').onclick=startMatch;kyouen.setRemote(false,null);kyouen.setRole(null);showToast('已切回本機對局')});
+$('#localMode').addEventListener('click',()=>{onlineGame.mode='local';onlineGame.role=null;joinArea.hidden=true;roomCode.hidden=true;setConnUI('尚未連線','');setNameEditorRole(null);$('#startGame').disabled=false;$('#startGame').textContent='開始對局 →';$('#startGame').onclick=startMatch;kyouen.setRemote(false,null);kyouen.setRole(null);showToast('已切回本機對局')});
 
 kyouen.setOnMove(()=>{
   playTone(kyouen.turn === 0 ? 340 : 410, .055);
   updateMatchUI();
-  if(window.onlineGame && onlineGame.mode==='online' && onlineGame.role==='host') onlineGame.sendState();
+  if(window.onlineGame && onlineGame.mode==='online' && onlineGame.role==='host' && !kyouen.finished) onlineGame.sendState();
   if(kyouen.finished) setTimeout(()=>{ if(window.onlineGame && onlineGame.mode==='online' && onlineGame.role==='guest') finishRoundGuest(); else finishRound(); }, 80);
 });
 
